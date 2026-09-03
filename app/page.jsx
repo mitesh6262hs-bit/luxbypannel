@@ -9,7 +9,7 @@ import CredentialsPanel from "../components/CredentialsPanel";
 import BackupPanel from "../components/BackupPanel";
 import AnalyticsPanel from "../components/AnalyticsPanel";
 
-const ADMIN_PASSWORD = "99991"; // <-- यहाँ आप अपना मनचाहा पासवर्ड सेट कर सकते हैं
+const ADMIN_PASSWORD = "787809"; // <-- यहाँ आप अपना मनचाहा पासवर्ड सेट कर सकते हैं
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
