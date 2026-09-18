@@ -1,7 +1,3 @@
-/* ============================================================ */
-/* globals.css - AUTO-FIT MOBILE RESPONSIVE STYLESHEET          */
-/* ============================================================ */
-
 :root {
     --bg-primary: #0a0d14;
     --bg-secondary: #10141f;
@@ -60,7 +56,6 @@ html, body {
     padding: 10px 8px;
 }
 
-/* TOP BAR */
 .top-bar {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -127,7 +122,6 @@ html, body {
     box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
 }
 
-/* MAIN LAYOUT */
 .main-layout {
     display: flex;
     gap: 12px;
@@ -194,7 +188,6 @@ html, body {
     width: 100%;
 }
 
-/* PANELS */
 .panel {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -257,7 +250,6 @@ html, body {
     border: 1px solid var(--border-color);
 }
 
-/* SEARCH */
 .search-container {
     position: relative;
     display: flex;
@@ -347,9 +339,6 @@ html, body {
     font-size: 11px;
 }
 
-/* ============================================================ */
-/* DEVICE CARDS (MOBILE AUTO FIX)                               */
-/* ============================================================ */
 .device-card-premium {
     width: 100%;
     background: linear-gradient(145deg, #171c28, #10131d);
@@ -486,7 +475,6 @@ html, body {
     word-break: break-all;
 }
 
-/* 2x2 ON MOBILE / 4x1 ON DESKTOP */
 .info-grid-premium {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -528,7 +516,6 @@ html, body {
     margin-top: 2px;
 }
 
-/* EXPANDED CONTENT & ACTION BUTTONS */
 .expandable-content {
     margin-top: 10px;
     padding-top: 10px;
@@ -585,7 +572,6 @@ html, body {
     align-items: center;
 }
 
-/* MOBILE BOTTOM NAV */
 .mobile-bottom-nav {
     display: none;
     position: fixed;
@@ -619,7 +605,6 @@ html, body {
     font-size: 15px;
 }
 
-/* TOASTS */
 #toastContainer {
     position: fixed;
     bottom: 64px;
@@ -660,8 +645,92 @@ html, body {
 }
 
 /* ============================================================ */
-/* MEDIA QUERIES: AUTO-FIT FOR MOBILE                           */
+/* VIEW FULL SMS MODAL (FIXED FOR MOBILE POPUP)                 */
 /* ============================================================ */
+.modal-luxury {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 999999;
+    justify-content: center;
+    align-items: center;
+    padding: 12px;
+}
+
+.modal-luxury.open {
+    display: flex !important;
+    animation: modalFadeIn 0.25s ease;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.modal-luxury-content {
+    background: #151a26;
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    width: 100%;
+    max-width: 520px;
+    max-height: 85vh;
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+}
+
+.modal-luxury-header {
+    padding: 12px 16px;
+    background: #0d111a;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-luxury-header h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gold-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-luxury-close {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-luxury-body {
+    padding: 12px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 @media (min-width: 851px) {
     .info-grid-premium {
         grid-template-columns: repeat(4, 1fr);
@@ -693,17 +762,5 @@ html, body {
     .action-btn-premium {
         font-size: 9px;
         padding: 6px 2px;
-    }
-}
-
-@media (max-width: 400px) {
-    .app-wrapper {
-        padding: 4px;
-    }
-    .panel {
-        padding: 8px;
-    }
-    .device-name-premium .name-text {
-        font-size: 13px;
     }
 }
