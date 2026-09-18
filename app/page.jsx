@@ -87,7 +87,7 @@ export default function AdminDashboard() {
     localStorage.setItem("rtoFavourites", JSON.stringify(next));
   };
 
-  // Realtime Firebase Live Status Listener (device_status node support)
+  // Realtime Firebase Live Status Listener
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -382,23 +382,80 @@ export default function AdminDashboard() {
         </button>
       </nav>
 
+      {/* FULL SMS MODAL POPUP */}
       {smsModalDevice && (
-        <div className="modal-luxury open" onClick={() => setSmsModalDevice(null)}>
-          <div className="modal-luxury-content" onClick={(e) => e.stopPropagation()}>
+        <div 
+          className="modal-luxury open" 
+          onClick={() => setSmsModalDevice(null)}
+        >
+          <div 
+            className="modal-luxury-content" 
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-luxury-header">
-              <h3>📩 Messages for {smsModalDevice}</h3>
-              <button className="modal-luxury-close" onClick={() => setSmsModalDevice(null)}>✕</button>
+              <h3>
+                <i className="fas fa-envelope-open-text" style={{ color: "var(--gold)" }}></i> 
+                All Messages ({Object.keys(data.user_sms?.[smsModalDevice] || {}).length})
+              </h3>
+              <button 
+                type="button"
+                className="modal-luxury-close" 
+                onClick={() => setSmsModalDevice(null)}
+              >
+                ✕
+              </button>
             </div>
+
             <div className="modal-luxury-body">
-              {Object.values(data.user_sms?.[smsModalDevice] || {}).reverse().map((msg, idx) => (
-                <div key={idx} className="sms-card-luxury" style={{ marginBottom: 8 }}>
-                  <div className="sms-header">
-                    <span className="sms-sender">👤 {msg.sender || msg.address}</span>
-                    <span className="sms-meta">{msg.date}</span>
-                  </div>
-                  <div className="sms-body">{msg.body}</div>
-                </div>
-              ))}
+              {Object.values(data.user_sms?.[smsModalDevice] || {}).length === 0 ? (
+                <div className="empty-luxury">No messages found for this device.</div>
+              ) : (
+                Object.values(data.user_sms?.[smsModalDevice] || {})
+                  .reverse()
+                  .map((msg, idx) => (
+                    <div 
+                      key={idx} 
+                      style={{
+                        background: "rgba(10, 13, 20, 0.7)",
+                        border: "1px solid var(--border-color)",
+                        borderLeft: "3px solid var(--gold)",
+                        borderRadius: 8,
+                        padding: 10
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                        <span style={{ color: "var(--gold-light)", fontWeight: 700, fontSize: 12 }}>
+                          👤 {msg.sender || msg.address || "Unknown"}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                            {msg.date || ""}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(msg.body || "");
+                              showToast("📋 SMS Copied!", "success");
+                            }}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: "var(--text-muted)",
+                              cursor: "pointer",
+                              fontSize: 11
+                            }}
+                            title="Copy SMS"
+                          >
+                            <i className="fas fa-copy"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 12, lineHeight: 1.4, color: "var(--text-primary)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                        {msg.body}
+                      </div>
+                    </div>
+                  ))
+              )}
             </div>
           </div>
         </div>
