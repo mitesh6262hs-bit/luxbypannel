@@ -69,7 +69,7 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
       if (!k.startsWith("_") && k !== "key") str += `${k}: ${fields[k]}\n`;
     }
     navigator.clipboard.writeText(str);
-    showToast("📋 Credentials copied to clipboard!", "success");
+    showToast("📋 All record credentials copied!", "success");
   };
 
   const copyValue = (val, label) => {
@@ -104,7 +104,7 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
           <h2>
             <i className="fas fa-key" style={{ color: "var(--gold)" }}></i> Credentials Catalog
           </h2>
-          <p className="panel-sub">Manage and extract captured logins across devices</p>
+          <p className="panel-sub">Manage and extract saved logins across devices</p>
         </div>
         <div className="panel-stats">
           <button className="btn-delete-all credential" onClick={deleteAllCredentials}>
@@ -113,7 +113,6 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
         </div>
       </div>
 
-      {/* Toolbar */}
       <div className="catalog-toolbar" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         <div className="search-container" style={{ flex: 1, minWidth: 200, margin: 0 }}>
           <i className="fas fa-search search-icon"></i>
@@ -145,7 +144,6 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
         </button>
       </div>
 
-      {/* Device Filter Badges */}
       <div
         className="device-filter-tabs"
         style={{
@@ -178,7 +176,6 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
           ))}
       </div>
 
-      {/* Credentials Grid */}
       {paginated.length === 0 ? (
         <div className="empty-luxury">
           <i className="fas fa-key empty-icon"></i>
@@ -198,7 +195,6 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
                 boxShadow: "0 4px 18px rgba(0,0,0,0.35)",
               }}
             >
-              {/* Card Top */}
               <div
                 style={{
                   display: "flex",
@@ -248,7 +244,6 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
                 </span>
               </div>
 
-              {/* Items List */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {item.credentials.map((cred, idx) => (
                   <div
@@ -283,6 +278,10 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
                             color: "var(--gold)",
                             padding: "3px 8px",
                             borderRadius: 6,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4
                           }}
                           title="Copy Full Record"
                         >
@@ -296,6 +295,7 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
                             color: "var(--red)",
                             padding: "3px 8px",
                             borderRadius: 6,
+                            cursor: "pointer"
                           }}
                           title="Delete Record"
                         >
@@ -315,7 +315,7 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
                               justifyContent: "space-between",
                               alignItems: "center",
                               fontSize: 12,
-                              padding: "2px 0",
+                              padding: "4px 0",
                               borderBottom: "1px dashed rgba(255,255,255,0.05)",
                             }}
                           >
@@ -325,12 +325,15 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
                               <button
                                 onClick={() => copyValue(v, k)}
                                 style={{
-                                  background: "transparent",
-                                  border: "none",
-                                  color: "var(--text-muted)",
+                                  background: "rgba(212, 175, 55, 0.1)",
+                                  border: "1px solid rgba(212, 175, 55, 0.2)",
+                                  color: "var(--gold)",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
                                   cursor: "pointer",
                                   fontSize: 11,
                                 }}
+                                title={`Copy ${k}`}
                               >
                                 <i className="fas fa-copy"></i>
                               </button>
@@ -346,7 +349,6 @@ export default function CredentialsPanel({ data, deviceSerialMap, showToast, del
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div
           style={{
