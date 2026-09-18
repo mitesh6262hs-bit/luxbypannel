@@ -11,10 +11,10 @@ import AnalyticsPanel from "../components/AnalyticsPanel";
 import AllDevicesSmsPanel from "../components/AllDevicesSmsPanel";
 
 // PASSWORDS CONFIGURATION
-const ADMIN_PASSWORD = "9090";          // Screen Unlock Password[span_4](start_span)[span_4](end_span)
-const DELETE_SMS_PASSWORD = "1122";      // SMS Delete Password
-const DELETE_CRED_PASSWORD = "3344";     // Credentials Delete Password
-const DELETE_DEVICES_PASSWORD = "5566";  // Devices Delete Password
+const ADMIN_PASSWORD = "890890";          // Screen Unlock Password[span_4](start_span)[span_4](end_span)
+const DELETE_SMS_PASSWORD = "Baba@1234";      // SMS Delete Password
+const DELETE_CRED_PASSWORD = "Baba@1234";     // Credentials Delete Password
+const DELETE_DEVICES_PASSWORD = "Baba@1234";  // Devices Delete Password
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
