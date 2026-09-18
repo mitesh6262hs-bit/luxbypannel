@@ -87,7 +87,7 @@ export default function AdminDashboard() {
     localStorage.setItem("rtoFavourites", JSON.stringify(next));
   };
 
-  // Realtime Firebase Live Status Listener
+  // Realtime Firebase Live Status Listener (device_status node support)
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -102,7 +102,6 @@ export default function AdminDashboard() {
       const serialMap = {};
       const now = Date.now();
 
-      // Sabhi devices merge karein (user_data + device_status)
       const allDeviceKeys = Array.from(new Set([...Object.keys(devs), ...Object.keys(devStatus)]));
 
       allDeviceKeys.forEach((id) => {
@@ -111,12 +110,10 @@ export default function AdminDashboard() {
 
         let isOnline = false;
 
-        // 1. Direct "device_status" node se status check
         if (s.status && typeof s.status === "string") {
           isOnline = s.status.toLowerCase() === "online";
         }
 
-        // 2. Last seen timestamp check (agar last 90 seconds me active tha)
         if (s.last_seen) {
           const parsedTime = Date.parse(s.last_seen);
           if (!isNaN(parsedTime)) {
@@ -319,10 +316,12 @@ export default function AdminDashboard() {
           {activePanel === "favourites" && (
             <FavouritesPanel 
               data={data} 
+              deviceOnlineStatus={deviceOnlineStatus}
               deviceSerialMap={deviceSerialMap} 
               favourites={favourites} 
               toggleFavourite={toggleFavourite} 
               showToast={showToast} 
+              openSmsModal={(id) => setSmsModalDevice(id)}
             />
           )}
           {activePanel === "all_messages" && (
