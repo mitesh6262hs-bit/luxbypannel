@@ -1,3 +1,7 @@
+/* ============================================================ */
+/* app/globals.css - COMPLETE LUXURY STYLESHEET                 */
+/* ============================================================ */
+
 :root {
     --bg-primary: #0c0e14;
     --bg-secondary: #12161f;
@@ -37,6 +41,7 @@ body {
 
 ::-webkit-scrollbar {
     width: 4px;
+    height: 4px;
 }
 ::-webkit-scrollbar-track {
     background: var(--bg-secondary);
@@ -52,7 +57,9 @@ body {
     padding: 12px;
 }
 
-/* TOP BAR */
+/* ============================================================ */
+/* TOP BAR                                                      */
+/* ============================================================ */
 .top-bar {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -119,7 +126,9 @@ body {
     box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
 }
 
-/* MAIN LAYOUT */
+/* ============================================================ */
+/* MAIN LAYOUT & SIDEBAR                                        */
+/* ============================================================ */
 .main-layout {
     display: flex;
     gap: 16px;
@@ -186,7 +195,9 @@ body {
     min-width: 0;
 }
 
-/* PANEL & HEADERS */
+/* ============================================================ */
+/* PANEL & HEADERS                                              */
+/* ============================================================ */
 .panel {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -254,7 +265,9 @@ body {
     border: 1px solid var(--border-color);
 }
 
-/* SEARCH & ACTION BUTTONS */
+/* ============================================================ */
+/* SEARCH & ACTION BUTTONS                                      */
+/* ============================================================ */
 .search-container {
     position: relative;
     display: flex;
@@ -343,7 +356,7 @@ body {
 }
 
 /* ============================================================ */
-/* LUXURY DEVICE CARD (SCREENSHOT FIX)                          */
+/* LUXURY DEVICE CARD                                           */
 /* ============================================================ */
 .device-card-premium {
     background: linear-gradient(145deg, #181d2a, #111520);
@@ -586,7 +599,38 @@ body {
     outline: none;
 }
 
-/* MOBILE BOTTOM NAV */
+/* ============================================================ */
+/* CREDENTIALS & FAVOURITES CUSTOMS                             */
+/* ============================================================ */
+.cred-card {
+    transition: all 0.3s ease;
+}
+.cred-card:hover {
+    border-color: rgba(212, 175, 55, 0.35) !important;
+}
+
+.device-filter-tabs::-webkit-scrollbar {
+    height: 3px;
+}
+.device-filter-tabs::-webkit-scrollbar-thumb {
+    background: var(--gold);
+    border-radius: 4px;
+}
+
+.empty-luxury {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted);
+}
+.empty-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* ============================================================ */
+/* MOBILE BOTTOM NAV                                            */
+/* ============================================================ */
 .mobile-bottom-nav {
     display: none;
     position: fixed;
@@ -609,6 +653,7 @@ body {
     gap: 3px;
     font-size: 10px;
     font-weight: 600;
+    cursor: pointer;
 }
 .mobile-nav-item.active {
     color: var(--gold);
@@ -617,7 +662,9 @@ body {
     font-size: 16px;
 }
 
-/* TOASTS */
+/* ============================================================ */
+/* TOAST NOTIFICATIONS                                         */
+/* ============================================================ */
 #toastContainer {
     position: fixed;
     bottom: 60px;
@@ -628,6 +675,7 @@ body {
     flex-direction: column;
     gap: 6px;
     max-width: 90%;
+    pointer-events: none;
 }
 .toast-luxury {
     background: var(--bg-card);
@@ -637,12 +685,15 @@ body {
     border: 1px solid var(--border-color);
     font-size: 12px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+    pointer-events: auto;
 }
 .toast-luxury.success { border-left: 3px solid var(--green); }
 .toast-luxury.error { border-left: 3px solid var(--red); }
 .toast-luxury.info { border-left: 3px solid var(--blue); }
 
-/* MOBILE RESPONSIVE FIXES */
+/* ============================================================ */
+/* MOBILE RESPONSIVE FIXES                                      */
+/* ============================================================ */
 @media (max-width: 850px) {
     .sidebar { display: none !important; }
     .mobile-bottom-nav { display: flex; }
