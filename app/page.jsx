@@ -10,7 +10,7 @@ import BackupPanel from "../components/BackupPanel";
 import AnalyticsPanel from "../components/AnalyticsPanel";
 import AllDevicesSmsPanel from "../components/AllDevicesSmsPanel";
 
-const ADMIN_PASSWORD = "123890";
+const ADMIN_PASSWORD = "123666";
 const DELETE_SMS_PASSWORD = "Baba@1234";
 const DELETE_CRED_PASSWORD = "Baba@1234";
 const DELETE_DEVICES_PASSWORD = "Baba@1234";
